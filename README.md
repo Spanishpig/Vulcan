@@ -16,5 +16,6 @@ AUTHORS:
   - TRIAL (STEAM_0:1:68249268)
 
 CHANGELOG:
-   - Slightly optimized additional halos for chams
-   - Adjusted P2P (PropToPlayers lines)
+   - 08/11: Slightly optimized additional halos for chams
+   - 08/11: Adjusted P2P (PropToPlayers lines)
+   - 08/11: Added surfertracker prototype at the end of the script
