@@ -7,7 +7,7 @@
 	- Nevertheless, I added a few fps optimization shit to help you: 
 			the fps saver convar, you should basically always keep this ON
 			you can also disable the additional chams halos which is purely aesthetic and takes a lot of fps when there are too many players to render
-	- I'll keep updating this script, according to the feedbacks I'll get. (it'll be on workshop too)
+	- I'll keep updating this script if im not too lazy.
 ]]
 
 -- BRAIN: STEAM_0:1:149906042
@@ -15,7 +15,7 @@
 
 // VULCAN
 local Vulcan = {
-	version = 1.5,
+	version = 1.7,
 	dangerous = false,
 	propID = ""
 }
@@ -45,6 +45,7 @@ CreateClientConVar("VULCAN_3rdperson_number", 120, true, false)
 
 CreateClientConVar("VULCAN_trajectory", 1, true, false)
 CreateClientConVar("VULCAN_P2P", 1, true, false)
+CreateClientConVar("VULCAN_P2P_MOVING_ONLY", 1, true, false)
 
 CreateClientConVar("VULCAN_xray", 1, true, false)
 CreateClientConVar("VULCAN_xray_adaptive_opacity", 0, true, false)
@@ -369,37 +370,67 @@ end
 hook.Add("HUDPaint", "kaosssuw3s", physLine)
 
 
- -- // PROPTOPLAYER TRACERS // --
+ -- // PROPTOPLAYERS TRACERS // --
 local function proptoplayer()
+
+	local propPOS2
+	local ent
+
 	if GetConVarNumber("VULCAN_P2P") == 1 then
+
 		for k, v in pairs( ents.FindByClass( "prop_physics" ) ) do
 
-			if (!myprops[v]) then continue end
+		if (!myprops[v]) then continue end
+		
+			if Vulcan.physlineOn == true and LocalPlayer():KeyDown(IN_ATTACK) then
 
 				for c,b in pairs(player.GetAll()) do
-					if v:GetPos():Distance(b:GetPos()) < 2000 then
+					if GetConVarNumber("VULCAN_P2P_MOVING_ONLY") == 1 then
+						ent = v
+					else
+						ent = Vulcan.prop
+					end
+					if ent:GetPos():Distance(b:GetPos()) < 2000 then
 						if validation(b) then
-						local propPOS = v:LocalToWorld(v:OBBCenter())
-							if LocalPlayer():KeyDown(IN_ATTACK) then
-								if Vulcan.physlineOn == true then
-									if v:GetVelocity():LengthSqr() > 10000 then
-										if b:GetVelocity():Length() != 0 then
- 
-											cam.Start3D()
-												render.SetMaterial(Material("trails/LOL"))
-												render.DrawBeam(propPOS, b:EyePos(), 45, 0, 0, Color(255, 0, 0, 255))
-												render.DrawLine(propPOS, b:EyePos(), Color(255,0,0,100))
-											cam.End3D()
- 
+							local propPOS = v:LocalToWorld(v:OBBCenter())
+							local Dist = math.Clamp( b:GetShootPos():Distance( LocalPlayer():GetShootPos() ), 1500, 2500 )
+							local StretchX = Dist/200
+							local StretchY = Dist/400
+							
+							if Vulcan.prop then
+								propPOS2 = Vulcan.prop:LocalToWorld(Vulcan.prop:OBBCenter())
+							end
+
+							if GetConVarNumber("VULCAN_P2P_MOVING_ONLY") == 1 then
+								if v:GetVelocity():LengthSqr() > 10000 then
+									if b:GetVelocity():Length() != 0 then
+										cam.Start3D()
+											render.SetMaterial(Material("trails/laser"))
+											render.DrawBeam(propPOS, b:EyePos(), 45, StretchX, StretchY, Color(255, 225, 0, 255))
+											render.DrawLine(propPOS, b:EyePos(), Color(255,125,0,255))
+										cam.End3D()
 									end
 								end
+							else
+								if propPOS2 then
+									cam.Start3D()
+										render.SetMaterial(Material("trails/laser"))
+										render.DrawBeam(propPOS2, b:EyePos(), Dist/30, StretchX, StretchY, Color(255, 225, 0, 255))
+										render.DrawLine(propPOS2, b:EyePos(), Color(255,125,0,255))
+									cam.End3D()
+								end
 							end
+
 						end
 					end
 				end
+				
 			end
+
 		end
+
 	end
+	
 end
 hook.Add ("HUDPaint", "proptoplayer", proptoplayer) // 35
 
@@ -435,28 +466,33 @@ end
 hook.Add("PreDrawEffects", "playerchams", CHAMS)
 
 hook.Add( "PreDrawHalos", "AddStaffHalos", function()
-if GetConVarNumber("VULCAN_chams") == 1 then
-local validplayers = {}
-	for k,v in next, player.GetAll() do
-		if !IsOutOfFOV(v) and validation(v) then
-			if !table.HasValue(validplayers, v) then
-				table.insert(validplayers, v)
+	if GetConVarNumber("VULCAN_chams") == 1 then
+		local validplayers = {}
+		local validplayers_lookup = {}
+
+		for k,v in next, player.GetAll() do
+			if !IsOutOfFOV(v) and validation(v) then
+				if !validplayers_lookup[v] then -- faster than using table.hasvalue
+					validplayers[#validplayers + 1] = v -- building the halos tbl
+					validplayers_lookup[v] = #validplayers -- storing the key so i can access it later
+				end
+			else
+				if validplayers_lookup[v] then
+					validplayers_lookup[v] = nil
+					table.remove(validplayers, validplayers_lookup[v]) -- faster than removebykey
+				end
 			end
-		else
-			if table.HasValue(validplayers, v) then
-				table.RemoveByValue(validplayers, v)
+		end
+
+		if #validplayers > 0 then
+			halo.Add( validplayers, Color( 255, 0, 0 ), 1, 1, 2, false, true )
+			if GetConVarNumber("VULCAN_chams_additional_halos") == 1 then 
+				halo.Add( validplayers, Color( 255, 255, 0 ), 1, 2, 2, true, true )
+				halo.Add( validplayers, Color( 255, 0, 0 ), 1, 10, 10, true, true )
 			end
 		end
 	end
 
-	if #validplayers > 0 then
-		halo.Add( validplayers, Color( 255, 0, 0 ), 1, 1, 2, false, true )
-		if GetConVarNumber("VULCAN_chams_additional_halos") == 1 then 
-			halo.Add( validplayers, Color( 255, 255, 0 ), 1, 2, 2, true, true )
-			halo.Add( validplayers, Color( 255, 0, 0 ), 1, 10, 10, true, true )
-		end
-	end
-end
 end )
 
 // XRAY
@@ -990,8 +1026,6 @@ local function crosshair()
 end
 hook.Add("HUDPaint", "crosshair", crosshair)
 
-
-
 Vulcan.PropKills = 0
 
 gameevent.Listen("entity_killed")
@@ -1098,6 +1132,148 @@ hook.Add("PreDrawEffects", "trails", function()
 	end
 end)
 
+
+
+
+// THIS WHOLE SURFING ANALYSER IS A PROTOTYPE
+
+Vulcan.TempSurfingPos = {}
+Vulcan.SurfingPaths = {}
+Vulcan.RecurrentPaths = {}
+Vulcan.PathsNumber = {}
+
+local function CheckForReccurency(tbl_pos, tbl_rc_paths, ply)
+	-- print("checking for recurrency...", tbl_pos)
+	for k,v in pairs(tbl_rc_paths) do
+		for a,b in pairs(k) do
+			if b:DistToSqr(tbl_pos[a]) < GetConVarNumber("Vulcan_SurfingTracker_RecurrencyDist")*GetConVarNumber("Vulcan_SurfingTracker_RecurrencyDist") then
+				-- print("recurrency", a, b, tbl_pos[a], k, tbl_pos)
+				if a == GetConVarNumber("Vulcan_SurfingTracker_PathsLength")*2 then 
+				-- print("recurrent path added!")
+					tbl_rc_paths[k] = tbl_rc_paths[k] + 1
+					Vulcan.PathsNumber[ply] = Vulcan.PathsNumber[ply] + 1
+					return true
+				end
+			else
+				break
+			end
+		end
+	end
+	return false
+end
+
+
+hook.Add("Think", "surf_tracker", function() -- recording players positions
+
+
+if GetConVarNumber("Vulcan_SurfingTracker") != 1 then return end
+
+	for k,v in pairs(player.GetAll()) do
+
+		if not validation_with_localplayer(v) then return end -- shortcut
+		
+		if v:GetVelocity():LengthSqr() > 1000000 then 
+			
+
+			if not Vulcan.TempSurfingPos[v] then
+				Vulcan.TempSurfingPos[v] = {}
+				Vulcan.PathsNumber[v] = 0
+			end
+	
+			local tbl_pos = Vulcan.TempSurfingPos[v] -- easier to access this way
+
+			if #tbl_pos > 1 then -- if there is already a pos inside the tbl then check the dist before adding a new pos
+				if tbl_pos[#tbl_pos-1]:Distance(v:GetPos()) > GetConVarNumber("Vulcan_SurfingTracker_PosDist") then
+					tbl_pos[#tbl_pos+1] = v:GetPos() -- adding a new pos
+				end
+			else
+				tbl_pos[#tbl_pos+1] = v:GetPos() -- add the first pos
+			end
+			
+			if #tbl_pos == GetConVarNumber("Vulcan_SurfingTracker_PathsLength")*2 then
+				if not Vulcan.SurfingPaths[v] then
+					Vulcan.SurfingPaths[v] = {}
+					Vulcan.RecurrentPaths[v] = {}
+				end
+				local all_paths = Vulcan.SurfingPaths[v]
+				all_paths[#all_paths+1] = tbl_pos
+				local tbl_rc_paths = Vulcan.RecurrentPaths[v]
+
+				
+				if next(tbl_rc_paths) then
+					if not CheckForReccurency(Vulcan.TempSurfingPos[v], Vulcan.RecurrentPaths[v], v) then
+						-- print("unique path added!")
+						tbl_rc_paths[tbl_pos] = 1
+						Vulcan.PathsNumber[v] = Vulcan.PathsNumber[v] + 1
+					end
+				else
+					-- print("first key added, no recurrency checking", tbl_pos)
+					Vulcan.PathsNumber[v] = 1
+					tbl_rc_paths[tbl_pos] = 1
+				end
+
+				Vulcan.TempSurfingPos[v] = {} -- cleaning the temp pos table
+				-- print("caught a new path!")
+				
+			end
+
+	
+		else
+			if Vulcan.TempSurfingPos[v] and #Vulcan.TempSurfingPos[v] > 1 and #Vulcan.TempSurfingPos[v] < GetConVarNumber("Vulcan_SurfingTracker_PathsLength")*2 then 
+			if v:GetVelocity():LengthSqr() == 20.25 then return end -- theres a glitch when players are surfing while holding their props pushing themselves, the vel gets reset to 4.5 wtf
+				-- print("surfing path was interrupted before the ending pos, aborting..") -- if the player dies or stops before the 20th position, dont create any path
+				Vulcan.TempSurfingPos[v] = {} -- cleaning the temp pos table
+			end
+		end
+	end
+
+
+
+end)
+
+
+hook.Add("PreDrawEffects", "drawing_paths", function()
+
+	if GetConVarNumber("Vulcan_SurfingTracker") != 1 then return end
+
+	local ply = Player(GetConVarNumber("Vulcan_SurfingTracker_Player"))
+
+	if GetConVarNumber("Vulcan_SurfingTracker_ShowAllPaths") == 1 then 
+		local tab2 = Vulcan.SurfingPaths[ply]
+		if tab2 then
+			for k,v in pairs(tab2) do
+				for int = 1, #v do
+					if v[int+1] then
+						render.DrawLine(v[int], v[int+1], Color(255,0,0,255))
+					end
+				end
+			end
+		end
+	end
+
+	if GetConVarNumber("Vulcan_SurfingTracker_ShowRecurrentPaths") == 1 then 
+		local tab = Vulcan.RecurrentPaths[ply]
+		if tab then
+			for a,b in pairs(tab) do
+				if b/Vulcan.PathsNumber[ply]*100 >= GetConVarNumber("Vulcan_SurfingTracker_Percentage") then
+					for i = 1, #a do
+						if a[i+1] then
+							render.DrawLine(a[i], a[i+1], Color(0,255,0, (b/Vulcan.PathsNumber[ply]*100)*10)) -- or *255*2
+						end
+					end
+				end
+			end
+		end
+	end
+
+end)
+
+
+concommand.Add("surf_tracker_printtbl", function()
+	PrintTable(Vulcan.RecurrentPaths)
+	PrintTable(Vulcan.PathsNumber)
+	-- PrintTable(Vulcan.SurfingPaths)
+end)
 
 
 
