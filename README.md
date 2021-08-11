@@ -14,3 +14,7 @@ A fancy propkill script
 AUTHORS:
   - BRAIN (STEAM_0:1:149906042)
   - TRIAL (STEAM_0:1:68249268)
+
+CHANGELOG:
+   - Slightly optimized additional halos for chams
+   - Adjusted P2P (PropToPlayers lines)
