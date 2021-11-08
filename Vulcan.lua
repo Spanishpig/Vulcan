@@ -2,12 +2,12 @@
 > VULCAN PK SCRIPT [Made by BrainFuck & Trial]
     - This script was made and designed exclusively for propkill. It has visuals, fov, bhop, and a few unique custom concepts I came up with a while ago.
 	- We wanted to come up with visually unique looking script, not something similar to 99% of the other propkill scripts around.
-    - This script won't help if you want to use it to cheat or be undetected on some other servers. (it will be detected anyways)
     - As this was mainly made for the propkill community, it COULD fuck your fps in case there would be too many players on the server you're on. (propkill servers are rarely very populated..)
 	- Nevertheless, I added a few fps optimization shit to help you: 
 			the fps saver convar, you should basically always keep this ON
 			you can also disable the additional chams halos which is purely aesthetic and takes a lot of fps when there are too many players to render
 	- I'll keep updating this script if im not too lazy.
+	- This is NOT a proper cheat. This is a PROPKILL clientside script. Trying to use this on other servers will get you detected and banned unless you have a cool bypass, and as I mentioned before, your fps will most likely get fucked.
 ]]
 
 -- BRAIN: STEAM_0:1:149906042
@@ -26,7 +26,12 @@ RunConsoleCommand("cl_interp", 0)
 RunConsoleCommand("rate", 51200)
 -- RunConsoleCommand("mat_fastspecular", 0)
 
-CreateMaterial( "White9", "UnlitGeneric", { [ "$basetexture" ] = "models/debug/debugwhite", [ "$nocull" ] = 1, [ "$model" ] = 1 } ); -- fixing the debugwhite shit material
+CreateMaterial( "White9", "UnlitGeneric", {
+ [ "$basetexture" ] = "models/debug/debugwhite", 
+ [ "$nocull" ] = 1, 
+ [ "$model" ] = 1 
+ 
+ }); -- fixing the debugwhite shit material
 
 // CONVARS THERE
 CreateClientConVar("VULCAN_bhop", 1, true, false)
@@ -128,24 +133,28 @@ local function spacecolor(n, t)
 	end
 end
 
-
+-- for k,v in next, game.GetWorld():GetMaterials() do
+	-- local asd = Material(v)
+	-- asd:SetVector("$color2", Vector(0.2, 0.2, 0.2))
+-- end
 
 local O_player_GetAll = player.GetAll
 
-function player.GetAll()
+-- function player.GetAll()
 
-	local players = O_player_GetAll()
+	-- local players = O_player_GetAll()
 	
-	local right_players = {}
+	-- local right_players = {}
 	
-	for k,v in pairs(players) do
-		if v:GetNWString("arena") == LocalPlayer():GetNWString("arena") then -- whatever ur check to know if a player is in some arena
-			right_players[#right_players + 1] = v
-		end
-	end
+	-- for k,v in pairs(players) do
+		-- if v:GetNWString("arena") == LocalPlayer():GetNWString("arena") then
+			-- right_players[#right_players + 1] = v
+		-- end
+	-- end
 	
-	return right_players
-end
+	-- return right_players
+-- end
+
 
 // IsOutOfFOV (very usefull for optimization, thanks Grump)
 local function IsOutOfFOV( ent )
@@ -162,6 +171,7 @@ local function IsOutOfFOV( ent )
 	end
 end
 
+
 // lazyness
 local function validation(x)
 	return IsValid(x) && x:Alive() && x != LocalPlayer() && x:Team() != TEAM_SPECTATOR && team.GetName(x:Team()) != "Spectator" && x:GetObserverMode() == 0;
@@ -176,7 +186,10 @@ local function is_spectator(x)
 	return true
 end
 
+local maxvel = 0
 local function velocityshower()
+	if LocalPlayer():GetVelocity():Length() > maxvel then maxvel = LocalPlayer():GetVelocity():Length() end
+
 	if(GetConVarNumber("VULCAN_VelocityHUD") == 1) then
 		draw.SimpleTextOutlined( math.Round(maxvel, 0), "DermaLarge", ScrW() /2, ScrH() /9-25, Color(255,255,255,255), 1, 1, 2, Color(50,50,50,255) )
 		draw.SimpleTextOutlined( math.Round(LocalPlayer():GetVelocity():Length(), 0), "DermaLarge", ScrW() /2, ScrH() /9, Color(255,255,255,255), 1, 1, 2, Color(50,50,50,255) )
@@ -216,6 +229,20 @@ local function Units_Convert(units)
 	end
 	return meters
 end
+
+local function speed_to_kmh(a,b,c)
+	c = tonumber(c[1])
+	return print(math.Round((c*15/352)*1.60934, 0))
+end
+concommand.Add("vel_convert_kmh", speed_to_kmh)
+
+
+local function speed_to_mph(a,b,c)
+	c = tonumber(c[1])
+	return print(math.Round(((c*15/352)*1.60934)/1.609, 0))
+end
+concommand.Add("vel_convert_mph", speed_to_mph)
+
 
 surface.CreateFont( "TheDefaultSettings", {
 	font = "Arial", -- Use the font-name which is shown to you by your operating system Font Viewer, not the file name
@@ -315,6 +342,7 @@ local function prop_logger(ply,wep,enabled,targ,bone,pos)
 	end
 	if GetConVarNumber("VULCAN_physline") != 1 and GetConVarNumber("VULCAN_physline_otherplayers") != 1 then return true end
 	if myprops[targ] then
+	if GetConVarNumber("VULCAN_physline") != 1 then return true end
 		-- if ply == LocalPlayer() then
 		Vulcan.CPos = LocalPlayer():EyePos() + EyeAngles():Forward() * 50
 		Vulcan.prop = targ
@@ -330,6 +358,7 @@ local function prop_logger(ply,wep,enabled,targ,bone,pos)
 			Vulcan.propID = ""
 			Vulcan.physlineOn = false
 		else
+			if GetConVarNumber("VULCAN_physline_otherplayers") != 1 then return true end
 			if IsValid(targ) and IsValid(ply) then
 				Vulcan.srcPos = wep:GetAttachment( 1 ).Pos
 				if ( !ply:ShouldDrawLocalPlayer() and ply == LocalPlayer() ) then
@@ -872,7 +901,7 @@ function PingPredict()
 		end
 	end
 end
-hook.Add("PreDrawEffects", "playerChams", PingPredict)
+hook.Add("PreDrawEffects", "PingPredict", PingPredict)
 
 function draw.OutlinedBox( x, y, w, h, thickness, clr )
 	surface.SetDrawColor( clr )
@@ -1131,149 +1160,6 @@ hook.Add("PreDrawEffects", "trails", function()
 		end
 	end
 end)
-
-
-
-
-// THIS WHOLE SURFING ANALYSER IS A PROTOTYPE
-
-Vulcan.TempSurfingPos = {}
-Vulcan.SurfingPaths = {}
-Vulcan.RecurrentPaths = {}
-Vulcan.PathsNumber = {}
-
-local function CheckForReccurency(tbl_pos, tbl_rc_paths, ply)
-	-- print("checking for recurrency...", tbl_pos)
-	for k,v in pairs(tbl_rc_paths) do
-		for a,b in pairs(k) do
-			if b:DistToSqr(tbl_pos[a]) < GetConVarNumber("Vulcan_SurfingTracker_RecurrencyDist")*GetConVarNumber("Vulcan_SurfingTracker_RecurrencyDist") then
-				-- print("recurrency", a, b, tbl_pos[a], k, tbl_pos)
-				if a == GetConVarNumber("Vulcan_SurfingTracker_PathsLength")*2 then 
-				-- print("recurrent path added!")
-					tbl_rc_paths[k] = tbl_rc_paths[k] + 1
-					Vulcan.PathsNumber[ply] = Vulcan.PathsNumber[ply] + 1
-					return true
-				end
-			else
-				break
-			end
-		end
-	end
-	return false
-end
-
-
-hook.Add("Think", "surf_tracker", function() -- recording players positions
-
-
-if GetConVarNumber("Vulcan_SurfingTracker") != 1 then return end
-
-	for k,v in pairs(player.GetAll()) do
-
-		if not validation_with_localplayer(v) then return end -- shortcut
-		
-		if v:GetVelocity():LengthSqr() > 1000000 then 
-			
-
-			if not Vulcan.TempSurfingPos[v] then
-				Vulcan.TempSurfingPos[v] = {}
-				Vulcan.PathsNumber[v] = 0
-			end
-	
-			local tbl_pos = Vulcan.TempSurfingPos[v] -- easier to access this way
-
-			if #tbl_pos > 1 then -- if there is already a pos inside the tbl then check the dist before adding a new pos
-				if tbl_pos[#tbl_pos-1]:Distance(v:GetPos()) > GetConVarNumber("Vulcan_SurfingTracker_PosDist") then
-					tbl_pos[#tbl_pos+1] = v:GetPos() -- adding a new pos
-				end
-			else
-				tbl_pos[#tbl_pos+1] = v:GetPos() -- add the first pos
-			end
-			
-			if #tbl_pos == GetConVarNumber("Vulcan_SurfingTracker_PathsLength")*2 then
-				if not Vulcan.SurfingPaths[v] then
-					Vulcan.SurfingPaths[v] = {}
-					Vulcan.RecurrentPaths[v] = {}
-				end
-				local all_paths = Vulcan.SurfingPaths[v]
-				all_paths[#all_paths+1] = tbl_pos
-				local tbl_rc_paths = Vulcan.RecurrentPaths[v]
-
-				
-				if next(tbl_rc_paths) then
-					if not CheckForReccurency(Vulcan.TempSurfingPos[v], Vulcan.RecurrentPaths[v], v) then
-						-- print("unique path added!")
-						tbl_rc_paths[tbl_pos] = 1
-						Vulcan.PathsNumber[v] = Vulcan.PathsNumber[v] + 1
-					end
-				else
-					-- print("first key added, no recurrency checking", tbl_pos)
-					Vulcan.PathsNumber[v] = 1
-					tbl_rc_paths[tbl_pos] = 1
-				end
-
-				Vulcan.TempSurfingPos[v] = {} -- cleaning the temp pos table
-				-- print("caught a new path!")
-				
-			end
-
-	
-		else
-			if Vulcan.TempSurfingPos[v] and #Vulcan.TempSurfingPos[v] > 1 and #Vulcan.TempSurfingPos[v] < GetConVarNumber("Vulcan_SurfingTracker_PathsLength")*2 then 
-			if v:GetVelocity():LengthSqr() == 20.25 then return end -- theres a glitch when players are surfing while holding their props pushing themselves, the vel gets reset to 4.5 wtf
-				-- print("surfing path was interrupted before the ending pos, aborting..") -- if the player dies or stops before the 20th position, dont create any path
-				Vulcan.TempSurfingPos[v] = {} -- cleaning the temp pos table
-			end
-		end
-	end
-
-
-
-end)
-
-
-hook.Add("PreDrawEffects", "drawing_paths", function()
-
-	if GetConVarNumber("Vulcan_SurfingTracker") != 1 then return end
-
-	local ply = Player(GetConVarNumber("Vulcan_SurfingTracker_Player"))
-
-	if GetConVarNumber("Vulcan_SurfingTracker_ShowAllPaths") == 1 then 
-		local tab2 = Vulcan.SurfingPaths[ply]
-		if tab2 then
-			for k,v in pairs(tab2) do
-				for int = 1, #v do
-					if v[int+1] then
-						render.DrawLine(v[int], v[int+1], Color(255,0,0,255))
-					end
-				end
-			end
-		end
-	end
-
-	if GetConVarNumber("Vulcan_SurfingTracker_ShowRecurrentPaths") == 1 then 
-		local tab = Vulcan.RecurrentPaths[ply]
-		if tab then
-			for a,b in pairs(tab) do
-				if b/Vulcan.PathsNumber[ply]*100 >= GetConVarNumber("Vulcan_SurfingTracker_Percentage") then
-					for i = 1, #a do
-						if a[i+1] then
-							render.DrawLine(a[i], a[i+1], Color(0,255,0, (b/Vulcan.PathsNumber[ply]*100)*10)) -- or *255*2
-						end
-					end
-				end
-			end
-		end
-	end
-
-end)
-
-
-concommand.Add("surf_tracker_printtbl", function()
-	PrintTable(Vulcan.RecurrentPaths)
-	PrintTable(Vulcan.PathsNumber)
-	-- PrintTable(Vulcan.SurfingPaths)
-end) --
 
 
 
