@@ -19,3 +19,4 @@ CHANGELOG:
    - 08/11: Slightly optimized additional halos for chams
    - 08/11: Adjusted P2P (PropToPlayers lines)
    - 08/11: Added surfertracker prototype at the end of the script
+   - 11/08: Removed surfertracker and added trails.
