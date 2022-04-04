@@ -426,7 +426,7 @@ local function proptoplayer()
 							local StretchX = Dist/200
 							local StretchY = Dist/400
 							
-							if Vulcan.prop then
+							if Vulcan.prop and IsValid(Vulcan.prop) then
 								propPOS2 = Vulcan.prop:LocalToWorld(Vulcan.prop:OBBCenter())
 							end
 
@@ -683,13 +683,13 @@ local hbcolor = Color(50,50,50,255)
 			local StretchX = Dist/200
 			local StretchY = Dist/400
 
-				for u,f in pairs(ents.FindByClass("prop_physics")) do -- turning the color red when a prop is over players head
-					if Up.Entity == f then
+				-- for u,f in pairs(ents.FindByClass("prop_physics")) do -- turning the color red when a prop is over players head
+					if IsValid(Up.Entity) and Up.Entity:GetClass() == "prop_physics" then
 						hbcolor = Color(255,0,0,255)
 					else
 						hbcolor = Color(50,50,50,255)
 					end
-				end
+				-- end
 
 				cam.Start3D()
 					cam.IgnoreZ(true)
