@@ -346,8 +346,8 @@ end)
 --end)
 
 -- Suppression des hooks
-hook.Remove("DrawPhysgunBeam", "heye")
-hook.Remove("CalcView", "PropCamera")
+--hook.Remove("DrawPhysgunBeam", "heye")
+--hook.Remove("CalcView", "PropCamera")
 
 
 -- // trajectory (draws a red line in the direction of a propsurfing target) // --
