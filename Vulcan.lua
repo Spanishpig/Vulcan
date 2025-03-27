@@ -98,6 +98,8 @@ CreateClientConVar( "Vulcan_crosshair_dot_size", 1, true, false )
 CreateClientConVar( "Vulcan_crosshair_color", "255,255,255", true, false )
 CreateClientConVar( "Vulcan_crosshair_opacity", 255, true, false )
 
+--Kerfa
+CreateClientConVar( "Vulcan_Glow", 1, true, false )
 
 local maxvel = 0
 
@@ -303,6 +305,50 @@ local function ESP()
 	end
 end
 hook.Add("HUDPaint", "names", ESP)
+--Kerfa
+local function GLOW()
+    if GetConVarNumber("VULCAN_Glow") == 1 then
+        local time = CurTime()
+        local r = math.sin(time * 2) * 127 + 128
+        local g = math.sin(time * 2 + math.pi / 3) * 127 + 128
+        local b = math.sin(time * 2 + 2 * math.pi / 3) * 127 + 128
+        local rainbowColor = Color(r, g, b)
+        halo.Add(ents.FindByClass("player*"), rainbowColor, 5, 5, 100, true, true)
+    end
+end
+
+hook.Add("PreDrawHalos", "IMTRYINGJUICYIMTRYING", function()
+    GLOW()
+end)
+
+--a ajouté
+--hook.Add("CalcView", "PropCamera", function(ply, pos, angles, fov)
+--    if IsValid(Vulcan.prop) then
+--        local forwardOffset = 72
+--        local forwardVector = Vulcan.prop:GetForward()
+--        local upVector = Vulcan.prop:GetUp()
+--        local adjustedPosition = Vulcan.prop:GetPos() + forwardVector * forwardOffset + upVector * 1.2
+--        local eyeAngles = LocalPlayer():EyeAngles()
+--        local camAngles = Angle(eyeAngles.p, eyeAngles.y, 0)
+--        local propsOffset = Vulcan.prop:GetPos() - adjustedPosition
+--
+--        camAngles:RotateAroundAxis(camAngles:Right(), propsOffset.z / 2)
+--
+--        return {
+--            origin = adjustedPosition,
+--            angles = camAngles,
+--            fov = fov,
+--            znear = 4,
+--            zfar = 4896,
+--            drawviewer = true
+--        }
+--    end
+--end)
+
+-- Suppression des hooks
+hook.Remove("DrawPhysgunBeam", "heye")
+hook.Remove("CalcView", "PropCamera")
+
 
 -- // trajectory (draws a red line in the direction of a propsurfing target) // --
 local function TRAJECTORY()
@@ -704,7 +750,7 @@ hook.Add("RenderScreenspaceEffects", "HEADBEAMS", HEADBEAMS)
 
 local function VMENU()
 	local base = vgui.Create("DFrame")
-		base:SetSize(240, 375)
+		base:SetSize(600, 375)
 		base:Center()
 		base:MakePopup()
 		base:SetTitle("VULCAN SCRIPT   **DEV TESTING**")
@@ -869,6 +915,13 @@ local function VMENU()
 			b13:SetText("VELOCITY FOV")
 			b13:SetToolTip("Higher velocity = higher FOV")
 			b13:SetConVar("VULCAN_FOV_VELOCITY")
+			b13:SetFont("TargetIDSmall")
+
+		local b13 = vgui.Create("DCheckBoxLabel", base)
+			b13:SetPos(200, 337)
+			b13:SetText("Glow")
+			b13:SetToolTip("Glow player")
+			b13:SetConVar("VULCAN_Glow")
 			b13:SetFont("TargetIDSmall")
 end
 concommand.Add("VULCAN_menu", VMENU)
@@ -1160,8 +1213,3 @@ hook.Add("PreDrawEffects", "trails", function()
 		end
 	end
 end)
-
-
-
-
-
